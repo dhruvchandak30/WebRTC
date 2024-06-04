@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import  { useEffect, useState, useRef } from "react";
 
 const Sender = () => {
   const [socket, setSocket] = useState<WebSocket | null>(null);

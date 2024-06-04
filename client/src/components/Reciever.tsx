@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import  { useEffect, useRef } from "react";
 
 const Receiver = () => {
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -44,10 +44,10 @@ const Receiver = () => {
         };
 
         pc.onnegotiationneeded = async () => {
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
+          const offer = await pc?.createOffer();
+          await pc?.setLocalDescription(offer);
           socket.send(
-            JSON.stringify({ type: "offer", sdp: pc.localDescription })
+            JSON.stringify({ type: "offer", sdp: pc?.localDescription })
           );
         };
 
@@ -74,11 +74,11 @@ const Receiver = () => {
         await pc.addIceCandidate(new RTCIceCandidate(message.candidate));
         console.log("Added IceCandidate");
       } else if (message.type === "offer") {
-        await pc.setRemoteDescription(message.sdp);
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
+        await pc?.setRemoteDescription(message.sdp);
+        const answer = await pc?.createAnswer();
+        await pc?.setLocalDescription(answer);
         socket.send(
-          JSON.stringify({ type: "createAnswer", sdp: pc.localDescription })
+          JSON.stringify({ type: "createAnswer", sdp: pc?.localDescription })
         );
       }
     };
