@@ -1,4 +1,4 @@
-import  { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 
 const Sender = () => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -6,7 +6,7 @@ const Sender = () => {
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8080");
+    const socket = new WebSocket("https://webrtc-1-rnqa.onrender.com");
     socket.onopen = () => {
       socket.send(JSON.stringify({ type: "sender" }));
     };
