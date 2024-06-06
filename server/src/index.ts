@@ -2,53 +2,92 @@ import { WebSocket, WebSocketServer } from "ws";
 
 const wss = new WebSocketServer({ port: 8080 });
 
-let senderSocket: null | WebSocket = null;
-let receiverSocket: null | WebSocket = null;
+interface Room {
+  senderSocket: WebSocket;
+  senderName: string;
+  receiverSocket: WebSocket | null;
+  receiverName: string | null;
+}
 
-let senderName: string = "";
-
-let recieverName: string = "";
+const rooms: Record<string, Room> = {};
 
 wss.on("connection", function connection(ws) {
   ws.on("error", console.error);
 
   ws.on("message", function message(data: any) {
     const message = JSON.parse(data);
+
     if (message.type === "sender") {
-      senderSocket = ws;
-      senderName = message.userName;
+      const { Id, userName } = message;
+      console.log("Id from " + userName + " Is " + Id);
+      rooms[Id] = {
+        senderSocket: ws,
+        senderName: userName,
+        receiverSocket: null,
+        receiverName: null,
+      };
     } else if (message.type === "receiver") {
-      receiverSocket = ws;
-      recieverName = message.userName;
-    } else if (message.type === "createOffer") {
-      if (ws !== senderSocket) {
+      const { Id, userName } = message;
+      console.log("Id from " + userName + " Is " + Id);
+      const room = rooms[Id];
+      if (room) {
+        room.receiverSocket = ws;
+        room.receiverName = userName;
+
+        
+        room.senderSocket.send(
+          JSON.stringify({
+            type: "remoteName",
+            name: userName,
+          })
+        );
+      } else {
+        ws.send(
+          JSON.stringify({
+            type: "error",
+            message: "No such meeting exists.",
+          })
+        );
         return;
       }
-      receiverSocket?.send(
+    } else if (message.type === "createOffer") {
+      const room = Object.values(rooms).find(
+        (room) => room.senderSocket === ws
+      );
+      if (!room) return;
+
+      room.receiverSocket?.send(
         JSON.stringify({
           type: "createOffer",
           sdp: message.sdp,
-          name: senderName,
+          name: room.senderName,
         })
       );
     } else if (message.type === "createAnswer") {
-      if (ws !== receiverSocket) {
-        return;
-      }
-      senderSocket?.send(
+      const room = Object.values(rooms).find(
+        (room) => room.receiverSocket === ws
+      );
+      if (!room) return;
+
+      room.senderSocket?.send(
         JSON.stringify({
           type: "createAnswer",
           sdp: message.sdp,
-          name: recieverName,
+          name: room.receiverName,
         })
       );
     } else if (message.type === "iceCandidate") {
-      if (ws === senderSocket) {
-        receiverSocket?.send(
+      const room = Object.values(rooms).find(
+        (room) => room.senderSocket === ws || room.receiverSocket === ws
+      );
+      if (!room) return;
+
+      if (ws === room.senderSocket) {
+        room.receiverSocket?.send(
           JSON.stringify({ type: "iceCandidate", candidate: message.candidate })
         );
-      } else if (ws === receiverSocket) {
-        senderSocket?.send(
+      } else if (ws === room.receiverSocket) {
+        room.senderSocket?.send(
           JSON.stringify({ type: "iceCandidate", candidate: message.candidate })
         );
       }
