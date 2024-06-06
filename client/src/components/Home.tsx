@@ -31,6 +31,7 @@ const Home: React.FC = () => {
     // Cleanup function to stop the video stream when the component unmounts
     return () => {
       if (localVideoRef.current && localVideoRef.current.srcObject) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         const stream = localVideoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach((track) => track.stop());
       }

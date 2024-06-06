@@ -20,12 +20,17 @@ const Sender = () => {
   const location = useLocation();
   const { state } = location as LocationState;
 
+  const [message, setMessage] = useState("");
+
   useEffect(() => {
     if (state) {
       setMeetId(state.Id);
       setName(state.userName);
     }
   }, [state]);
+  useEffect(() => {
+    console.log("Remote Name", remoteName);
+  }, [remoteName]);
 
   useEffect(() => {
     if (!meetId || !name) return;
@@ -42,6 +47,7 @@ const Sender = () => {
     return () => {
       socket.close();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meetId, name]);
 
   useEffect(() => {
@@ -59,9 +65,15 @@ const Sender = () => {
         if (data.type === "endCall") {
           endCallHandler();
         }
+        if (data.type === "error") {
+          setMessage(data.message);
+        }
+        if (data.type === "remoteName") {
+          setRemoteName(data.name);
+        }
       };
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, pc]);
 
   const startSendingVideoHandler = async () => {
@@ -88,7 +100,7 @@ const Sender = () => {
 
     const stream = await navigator.mediaDevices.getUserMedia({
       video: true,
-      audio: false,
+      audio: true,
     });
 
     if (localVideoRef.current) {
@@ -139,7 +151,13 @@ const Sender = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-700 space-y-4">
-      {!remoteUserJoined && (
+      {!remoteName && (
+        <label className="text-2xl text-white">Waiting for Users to Join . . .</label>
+      )}
+      {remoteName && !remoteUserJoined && (
+        <label className="text-2xl text-white">{remoteName} has Joined</label>
+      )}
+      {remoteName && !remoteUserJoined && (
         <button
           onClick={startSendingVideoHandler}
           className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
@@ -150,29 +168,29 @@ const Sender = () => {
 
       <div className="flex space-x-4">
         <div className="flex flex-col items-center">
-          {remoteUserJoined && <label className="text-white mb-2">You</label>}
           <video
             ref={localVideoRef}
-            style={{ transform: "scaleX(-1)", width: "30rem", height: "30rem" }}
+            style={{ transform: "scaleX(-1)", width: "40rem", height: "30rem" }}
             className=" "
             autoPlay
           ></video>
+          {remoteUserJoined && <label className="text-white">You</label>}
         </div>
         {remoteUserJoined && (
           <div className="flex flex-col items-center">
-            <label className="text-white mb-2">
-              {remoteName ? remoteName : "Other"}
-            </label>
             <video
               ref={remoteVideoRef}
               style={{
                 transform: "scaleX(-1)",
-                width: "30rem",
+                width: "40rem",
                 height: "30rem",
               }}
               className=" "
               autoPlay
             ></video>
+            <label className="text-white ">
+              {remoteName ? remoteName : "Other"}
+            </label>
           </div>
         )}
       </div>
@@ -184,6 +202,7 @@ const Sender = () => {
           END CALL
         </button>
       )}
+      {message && <label className="text-red-700 text-xl">{message}</label>}
     </div>
   );
 };

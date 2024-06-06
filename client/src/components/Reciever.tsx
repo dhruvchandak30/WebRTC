@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 interface LocationState {
   state: {
@@ -18,6 +18,7 @@ const Receiver = () => {
   const [remoteUserJoined, setRemoteUserJoined] = useState<boolean>(false);
   const location = useLocation();
   const { state } = location as LocationState;
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (state) {
@@ -86,7 +87,7 @@ const Receiver = () => {
 
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
-          audio: false,
+          audio: true,
         });
 
         if (localVideoRef.current) {
@@ -111,6 +112,8 @@ const Receiver = () => {
         socket.send(
           JSON.stringify({ type: "createAnswer", sdp: pc?.localDescription })
         );
+      } else if (message.type === "error") {
+        setMessage(message.message);
       }
     };
 
@@ -151,33 +154,31 @@ const Receiver = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-700 space-y-4">
       <div className="flex space-x-4">
+        {!remoteUserJoined && !message && (
+          <label className="text-white">Waiting for owner to let you In</label>
+        )}
         <div className="flex flex-col items-center">
-          {!remoteUserJoined && (
-            <label className="text-white">
-              Waiting for owner to Start the Call
-            </label>
-          )}
-          {remoteUserJoined && <label className="text-white mb-2">You</label>}
           <video
-            style={{ transform: "scaleX(-1)", width: "30rem", height: "30rem" }}
+            style={{ transform: "scaleX(-1)", width: "40rem", height: "30rem" }}
             ref={localVideoRef}
             autoPlay
           ></video>
+          {remoteUserJoined && <label className="text-white mb-2">You</label>}
         </div>
         {remoteUserJoined && (
           <div className="flex flex-col items-center">
-            <label className="text-white mb-2">
-              {remoteName ? remoteName : "Other"}
-            </label>
             <video
               style={{
                 transform: "scaleX(-1)",
-                width: "30rem",
+                width: "40rem",
                 height: "30rem",
               }}
               ref={remoteVideoRef}
               autoPlay
             ></video>
+            <label className="text-white mb-2">
+              {remoteName ? remoteName : "Other"}
+            </label>
           </div>
         )}
       </div>
@@ -188,6 +189,14 @@ const Receiver = () => {
         >
           END CALL
         </button>
+      )}
+      {message && (
+        <div className="flex flex-col text-center">
+          <label className="text-red-700 font-bold text-3xl">{message}</label>
+          <Link to="/" className="text-white text-3xl">
+            Go Back
+          </Link>
+        </div>
       )}
     </div>
   );
