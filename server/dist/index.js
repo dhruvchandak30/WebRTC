@@ -6,7 +6,7 @@ const rooms = {};
 wss.on("connection", function connection(ws) {
     ws.on("error", console.error);
     ws.on("message", function message(data) {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         const message = JSON.parse(data);
         if (message.type === "sender") {
             const { Id, userName } = message;
@@ -67,6 +67,28 @@ wss.on("connection", function connection(ws) {
             }
             else if (ws === room.receiverSocket) {
                 (_d = room.senderSocket) === null || _d === void 0 ? void 0 : _d.send(JSON.stringify({ type: "iceCandidate", candidate: message.candidate }));
+            }
+        }
+        else if (message.type === "startCamera") {
+            const room = Object.values(rooms).find((room) => room.senderSocket === ws || room.receiverSocket === ws);
+            if (!room)
+                return;
+            if (ws === room.senderSocket) {
+                (_e = room.receiverSocket) === null || _e === void 0 ? void 0 : _e.send(JSON.stringify({ type: "startCamera" }));
+            }
+            else if (ws === room.receiverSocket) {
+                (_f = room.senderSocket) === null || _f === void 0 ? void 0 : _f.send(JSON.stringify({ type: "startCamera" }));
+            }
+        }
+        else if (message.type === "cameraClosed") {
+            const room = Object.values(rooms).find((room) => room.senderSocket === ws || room.receiverSocket === ws);
+            if (!room)
+                return;
+            if (ws === room.senderSocket) {
+                (_g = room.receiverSocket) === null || _g === void 0 ? void 0 : _g.send(JSON.stringify({ type: "cameraClosed" }));
+            }
+            else if (ws === room.receiverSocket) {
+                (_h = room.senderSocket) === null || _h === void 0 ? void 0 : _h.send(JSON.stringify({ type: "cameraClosed" }));
             }
         }
     });

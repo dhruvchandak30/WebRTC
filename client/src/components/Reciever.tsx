@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 interface LocationState {
   state: {
@@ -9,6 +9,7 @@ interface LocationState {
 }
 
 const Receiver = () => {
+  const navigate = useNavigate();
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -19,19 +20,18 @@ const Receiver = () => {
   const location = useLocation();
   const { state } = location as LocationState;
   const [message, setMessage] = useState("");
+  const [remoteCamera, setRemoteCamera] = useState(true);
+  const [stream, setStream] = useState<unknown>(null);
 
   useEffect(() => {
     if (state) {
       setMeetId(state.Id);
-
-      console.log("Got User Name", state.userName);
     }
   }, [state]);
 
   useEffect(() => {
-    const socket = new WebSocket("https://webrtc-1-rnqa.onrender.com");
-
-    // const socket = new WebSocket("http://localhost:8080");
+    // const socket = new WebSocket("https://webrtc-1-rnqa.onrender.com");
+    const socket = new WebSocket("http://localhost:8080");
     socketRef.current = socket;
 
     socket.onopen = () => {
@@ -72,7 +72,10 @@ const Receiver = () => {
         pc.ontrack = (event) => {
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = event.streams[0];
+            setRemoteCamera(true);
+            console.log("Inside Remote.currect");
           }
+          console.log("Addoing Remote Track");
         };
 
         pc.onnegotiationneeded = async () => {
@@ -89,6 +92,7 @@ const Receiver = () => {
           video: true,
           audio: true,
         });
+        setStream(stream);
 
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
@@ -114,6 +118,13 @@ const Receiver = () => {
         );
       } else if (message.type === "error") {
         setMessage(message.message);
+      } else if (message.type === "cameraClosed") {
+        remoteVideoRef.current = null;
+        setRemoteCamera(false);
+        console.log("Recvd Stop Camera Call");
+      } else if (message.type === "startCamera") {
+        console.log("Recv Start Camera");
+        setRemoteCamera(true);
       }
     };
 
@@ -126,6 +137,47 @@ const Receiver = () => {
       }
     };
   }, [meetId, state.userName]);
+
+  const StopCameraHandler = () => {
+    if (stream && pcRef.current) {
+      const pc = pcRef.current;
+      socketRef.current?.send(JSON.stringify({ type: "cameraClosed" }));
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-expect-error
+      stream.getTracks().forEach((track) => {
+        track.stop();
+        const sender = pc.getSenders().find((sender) => sender.track === track);
+        if (sender) {
+          pc.removeTrack(sender);
+        }
+      });
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = null;
+      }
+
+      setStream(null);
+    }
+  };
+
+  const StartCameraHandler = async () => {
+    if (pcRef.current) {
+      socketRef.current?.send(JSON.stringify({ type: "startCamera" }));
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+
+      stream
+        .getTracks()
+        .forEach((track) => pcRef.current?.addTrack(track, stream));
+      setStream(stream);
+    }
+  };
 
   const endCallHandler = () => {
     if (pcRef.current) {
@@ -149,6 +201,7 @@ const Receiver = () => {
     }
     setRemoteUserJoined(false);
     setRemoteName("");
+    navigate("/");
   };
 
   return (
@@ -165,7 +218,7 @@ const Receiver = () => {
           ></video>
           {remoteUserJoined && <label className="text-white mb-2">You</label>}
         </div>
-        {remoteUserJoined && (
+        {remoteCamera && (
           <div className="flex flex-col items-center">
             <video
               style={{
@@ -176,20 +229,29 @@ const Receiver = () => {
               ref={remoteVideoRef}
               autoPlay
             ></video>
+
             <label className="text-white mb-2">
               {remoteName ? remoteName : "Other"}
             </label>
           </div>
         )}
       </div>
-      {remoteUserJoined && (
-        <button
-          onClick={endCallHandler}
-          className="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75"
-        >
-          END CALL
-        </button>
-      )}
+      <div className="flex flex-col md:flex-row md:gap-8 items-center">
+        <div className="flex flex-row gap-8">
+          <div onClick={StartCameraHandler}>Start Camera</div>
+          <div onClick={StopCameraHandler}>Stop Camera</div>
+        </div>
+        <div>
+          {remoteUserJoined && (
+            <button
+              onClick={endCallHandler}
+              className="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75"
+            >
+              END CALL
+            </button>
+          )}
+        </div>
+      </div>
       {message && (
         <div className="flex flex-col text-center">
           <label className="text-red-700 font-bold text-3xl">{message}</label>

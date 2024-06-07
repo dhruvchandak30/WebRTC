@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 interface LocationState {
   state: {
@@ -9,6 +9,7 @@ interface LocationState {
 }
 
 const Sender = () => {
+  const navigate = useNavigate();
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [pc, setPc] = useState<RTCPeerConnection | null>(null);
   const [meetId, setMeetId] = useState<string>("");
@@ -21,6 +22,9 @@ const Sender = () => {
   const { state } = location as LocationState;
 
   const [message, setMessage] = useState("");
+  const [yourCamera, setYourCamera] = useState(false);
+  const [remoteCamera, setRemoteCamera] = useState(true);
+  const [stream, setStream] = useState<unknown>(null);
 
   useEffect(() => {
     if (state) {
@@ -35,8 +39,8 @@ const Sender = () => {
   useEffect(() => {
     if (!meetId || !name) return;
 
-    const socket = new WebSocket("https://webrtc-1-rnqa.onrender.com");
-    // const socket = new WebSocket("http://localhost:8080");
+    // const socket = new WebSocket("https://webrtc-1-rnqa.onrender.com");
+    const socket = new WebSocket("http://localhost:8080");
     socket.onopen = () => {
       socket.send(
         JSON.stringify({ type: "sender", Id: meetId, userName: name })
@@ -70,6 +74,12 @@ const Sender = () => {
         }
         if (data.type === "remoteName") {
           setRemoteName(data.name);
+        }
+        if (data.type === "cameraClosed") {
+          setRemoteCamera(false);
+        }
+        if (data.type === "startCamera") {
+          setRemoteCamera(true);
         }
       };
     }
@@ -105,11 +115,11 @@ const Sender = () => {
 
     if (localVideoRef.current) {
       localVideoRef.current.srcObject = stream;
+      setYourCamera(true);
     }
-    // const stream=localVideoRef.current?.srcObject;
 
     stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-
+    setStream(stream);
     pc.ontrack = (event) => {
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = event.streams[0];
@@ -124,6 +134,46 @@ const Sender = () => {
         // setRemoteUserJoined(false);
       }
     };
+  };
+
+  const StopCameraHandler = () => {
+    if (stream && pc) {
+      setYourCamera(false);
+      socket?.send(JSON.stringify({ type: "cameraClosed" }));
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-expect-error
+      stream.getTracks().forEach((track) => {
+        track.stop();
+        const sender = pc.getSenders().find((sender) => sender.track === track);
+        if (sender) {
+          pc.removeTrack(sender);
+        }
+      });
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = null;
+      }
+
+      setStream(null);
+    }
+  };
+
+  const StartCameraHandler = async () => {
+    if (pc) {
+      setYourCamera(true);
+      socket?.send(JSON.stringify({ type: "startCamera" }));
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      setStream(stream);
+    }
   };
 
   const endCallHandler = () => {
@@ -147,15 +197,20 @@ const Sender = () => {
     }
     setRemoteUserJoined(false);
     setRemoteName("");
+    navigate("/");
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-700 space-y-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-700 space-y-4 p-4">
       {!remoteName && (
-        <label className="text-2xl text-white">Waiting for Users to Join . . .</label>
+        <label className="text-2xl text-white text-center">
+          Waiting for Users to Join . . .
+        </label>
       )}
       {remoteName && !remoteUserJoined && (
-        <label className="text-2xl text-white">{remoteName} has Joined</label>
+        <label className="text-2xl text-white text-center">
+          {remoteName} has Joined
+        </label>
       )}
       {remoteName && !remoteUserJoined && (
         <button
@@ -166,43 +221,48 @@ const Sender = () => {
         </button>
       )}
 
-      <div className="flex space-x-4">
+      <div className="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
         <div className="flex flex-col items-center">
           <video
             ref={localVideoRef}
-            style={{ transform: "scaleX(-1)", width: "40rem", height: "30rem" }}
-            className=" "
+            style={{ transform: "scaleX(-1)", width: "30rem" }}
+            className="w-full h-auto md:w-96 md:h-72"
             autoPlay
           ></video>
           {remoteUserJoined && <label className="text-white">You</label>}
         </div>
-        {remoteUserJoined && (
+        {remoteCamera && (
           <div className="flex flex-col items-center">
             <video
               ref={remoteVideoRef}
-              style={{
-                transform: "scaleX(-1)",
-                width: "40rem",
-                height: "30rem",
-              }}
-              className=" "
+              style={{ transform: "scaleX(-1)", width: "30rem" }}
+              className=" md:w-96 md:h-72"
               autoPlay
             ></video>
-            <label className="text-white ">
+            <label className="text-white">
               {remoteName ? remoteName : "Other"}
             </label>
           </div>
         )}
       </div>
-      {remoteUserJoined && (
-        <button
-          onClick={endCallHandler}
-          className="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75"
-        >
-          END CALL
-        </button>
-      )}
+      <div className="flex flex-col md:flex-row md:gap-8 items-center">
+        <div className="flex flex-row gap-8">
+          {yourCamera && <div onClick={StopCameraHandler}>Stop Camera</div>}
+          {!yourCamera && <div onClick={StartCameraHandler}>Start Camera</div>}
+        </div>
+        <div>
+          {remoteUserJoined && (
+            <button
+              onClick={endCallHandler}
+              className="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75"
+            >
+              END CALL
+            </button>
+          )}
+        </div>
+      </div>
       {message && <label className="text-red-700 text-xl">{message}</label>}
+      <div className="text-xl text-white mt-4 md:mt-0">Meet Id: {meetId}</div>
     </div>
   );
 };

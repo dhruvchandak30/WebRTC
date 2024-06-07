@@ -34,7 +34,6 @@ wss.on("connection", function connection(ws) {
         room.receiverSocket = ws;
         room.receiverName = userName;
 
-        
         room.senderSocket.send(
           JSON.stringify({
             type: "remoteName",
@@ -90,6 +89,28 @@ wss.on("connection", function connection(ws) {
         room.senderSocket?.send(
           JSON.stringify({ type: "iceCandidate", candidate: message.candidate })
         );
+      }
+    } else if (message.type === "startCamera") {
+      const room = Object.values(rooms).find(
+        (room) => room.senderSocket === ws || room.receiverSocket === ws
+      );
+      if (!room) return;
+
+      if (ws === room.senderSocket) {
+        room.receiverSocket?.send(JSON.stringify({ type: "startCamera" }));
+      } else if (ws === room.receiverSocket) {
+        room.senderSocket?.send(JSON.stringify({ type: "startCamera" }));
+      }
+    } else if (message.type === "cameraClosed") {
+      const room = Object.values(rooms).find(
+        (room) => room.senderSocket === ws || room.receiverSocket === ws
+      );
+      if (!room) return;
+
+      if (ws === room.senderSocket) {
+        room.receiverSocket?.send(JSON.stringify({ type: "cameraClosed" }));
+      } else if (ws === room.receiverSocket) {
+        room.senderSocket?.send(JSON.stringify({ type: "cameraClosed" }));
       }
     }
   });
