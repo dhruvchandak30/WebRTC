@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-
+import startCamera from "../assets/startCamera.png";
+import stopCamera from "../assets/stopCamera.png";
 interface LocationState {
   state: {
     Id: string;
@@ -22,7 +23,7 @@ const Sender = () => {
   const { state } = location as LocationState;
 
   const [message, setMessage] = useState("");
-  const [yourCamera, setYourCamera] = useState(false);
+  const [yourCamera, setYourCamera] = useState(true);
   const [remoteCamera, setRemoteCamera] = useState(true);
   const [stream, setStream] = useState<unknown>(null);
 
@@ -222,15 +223,17 @@ const Sender = () => {
       )}
 
       <div className="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
-        <div className="flex flex-col items-center">
-          <video
-            ref={localVideoRef}
-            style={{ transform: "scaleX(-1)", width: "30rem" }}
-            className="w-full h-auto md:w-96 md:h-72"
-            autoPlay
-          ></video>
-          {remoteUserJoined && <label className="text-white">You</label>}
-        </div>
+        {yourCamera && (
+          <div className="flex flex-col items-center">
+            <video
+              ref={localVideoRef}
+              style={{ transform: "scaleX(-1)", width: "30rem" }}
+              className="w-full h-auto md:w-96 md:h-72"
+              autoPlay
+            ></video>
+            {remoteUserJoined && <label className="text-white">You</label>}
+          </div>
+        )}
         {remoteCamera && (
           <div className="flex flex-col items-center">
             <video
@@ -239,17 +242,32 @@ const Sender = () => {
               className=" md:w-96 md:h-72"
               autoPlay
             ></video>
-            <label className="text-white">
-              {remoteName ? remoteName : "Other"}
-            </label>
+            <label className="text-white">{remoteName ? remoteName : ""}</label>
           </div>
         )}
       </div>
       <div className="flex flex-col md:flex-row md:gap-8 items-center">
         <div className="flex flex-row gap-8">
-          {yourCamera && <div onClick={StopCameraHandler}>Stop Camera</div>}
-          {!yourCamera && <div onClick={StartCameraHandler}>Start Camera</div>}
+          {yourCamera && (
+            <div onClick={StopCameraHandler} className="cursor-pointer">
+              <img
+                src={startCamera}
+                className="cursor-pointer rounded-full w-12"
+                alt="Stop Camera"
+              />
+            </div>
+          )}
+          {!yourCamera && (
+            <div onClick={StartCameraHandler}>
+              <img
+                src={stopCamera}
+                className="cursor-pointer rounded-full w-12"
+                alt="Start Camera"
+              />
+            </div>
+          )}
         </div>
+
         <div>
           {remoteUserJoined && (
             <button

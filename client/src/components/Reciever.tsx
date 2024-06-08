@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import startCamera from "../assets/startCamera.png";
+import stopCamera from "../assets/stopCamera.png";
 
 interface LocationState {
   state: {
@@ -22,6 +24,7 @@ const Receiver = () => {
   const [message, setMessage] = useState("");
   const [remoteCamera, setRemoteCamera] = useState(true);
   const [stream, setStream] = useState<unknown>(null);
+  const [yourCamera, setYourCamera] = useState(true);
 
   useEffect(() => {
     if (state) {
@@ -96,6 +99,7 @@ const Receiver = () => {
 
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
+          setYourCamera(true);
         }
 
         stream.getTracks().forEach((track) => pc?.addTrack(track, stream));
@@ -140,6 +144,7 @@ const Receiver = () => {
 
   const StopCameraHandler = () => {
     if (stream && pcRef.current) {
+      setYourCamera(false);
       const pc = pcRef.current;
       socketRef.current?.send(JSON.stringify({ type: "cameraClosed" }));
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -162,6 +167,7 @@ const Receiver = () => {
 
   const StartCameraHandler = async () => {
     if (pcRef.current) {
+      setYourCamera(true);
       socketRef.current?.send(JSON.stringify({ type: "startCamera" }));
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
@@ -210,14 +216,20 @@ const Receiver = () => {
         {!remoteUserJoined && !message && (
           <label className="text-white">Waiting for owner to let you In</label>
         )}
-        <div className="flex flex-col items-center">
-          <video
-            style={{ transform: "scaleX(-1)", width: "40rem", height: "30rem" }}
-            ref={localVideoRef}
-            autoPlay
-          ></video>
-          {remoteUserJoined && <label className="text-white mb-2">You</label>}
-        </div>
+        {yourCamera && (
+          <div className="flex flex-col items-center">
+            <video
+              style={{
+                transform: "scaleX(-1)",
+                width: "40rem",
+                height: "30rem",
+              }}
+              ref={localVideoRef}
+              autoPlay
+            ></video>
+            {remoteUserJoined && <label className="text-white mb-2">You</label>}
+          </div>
+        )}
         {remoteCamera && (
           <div className="flex flex-col items-center">
             <video
@@ -231,16 +243,33 @@ const Receiver = () => {
             ></video>
 
             <label className="text-white mb-2">
-              {remoteName ? remoteName : "Other"}
+              {remoteName ? remoteName : ""}
             </label>
           </div>
         )}
       </div>
       <div className="flex flex-col md:flex-row md:gap-8 items-center">
         <div className="flex flex-row gap-8">
-          <div onClick={StartCameraHandler}>Start Camera</div>
-          <div onClick={StopCameraHandler}>Stop Camera</div>
+          {yourCamera && (
+            <div onClick={StopCameraHandler} className="cursor-pointer">
+              <img
+                src={startCamera}
+                className="cursor-pointer rounded-full w-12"
+                alt="Stop Camera"
+              />
+            </div>
+          )}
+          {!yourCamera && (
+            <div onClick={StartCameraHandler}>
+              <img
+                src={stopCamera}
+                className="cursor-pointer rounded-full w-12"
+                alt="Start Camera"
+              />
+            </div>
+          )}
         </div>
+
         <div>
           {remoteUserJoined && (
             <button
@@ -252,6 +281,7 @@ const Receiver = () => {
           )}
         </div>
       </div>
+
       {message && (
         <div className="flex flex-col text-center">
           <label className="text-red-700 font-bold text-3xl">{message}</label>
@@ -260,6 +290,7 @@ const Receiver = () => {
           </Link>
         </div>
       )}
+      <div className="text-xl text-white mt-4 md:mt-0">Meet Id: {meetId}</div>
     </div>
   );
 };
