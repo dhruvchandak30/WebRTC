@@ -30,8 +30,8 @@ const Receiver = () => {
   }, [state]);
 
   useEffect(() => {
-    // const socket = new WebSocket("https://webrtc-1-rnqa.onrender.com");
-    const socket = new WebSocket("http://localhost:8080");
+    const socket = new WebSocket("https://webrtc-1-rnqa.onrender.com");
+    // const socket = new WebSocket("http://localhost:8080");
     socketRef.current = socket;
 
     socket.onopen = () => {

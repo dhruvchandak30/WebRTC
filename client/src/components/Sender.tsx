@@ -39,8 +39,8 @@ const Sender = () => {
   useEffect(() => {
     if (!meetId || !name) return;
 
-    // const socket = new WebSocket("https://webrtc-1-rnqa.onrender.com");
-    const socket = new WebSocket("http://localhost:8080");
+    const socket = new WebSocket("https://webrtc-1-rnqa.onrender.com");
+    // const socket = new WebSocket("http://localhost:8080");
     socket.onopen = () => {
       socket.send(
         JSON.stringify({ type: "sender", Id: meetId, userName: name })
