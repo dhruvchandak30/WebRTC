@@ -12,7 +12,6 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Access the user's camera
     const getUserMedia = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -22,7 +21,7 @@ const Home: React.FC = () => {
           localVideoRef.current.srcObject = stream;
         }
       } catch (error) {
-        console.error("Error accessing camera:", error);
+        alert("Error accessing camera, Give permissions");
       }
     };
 

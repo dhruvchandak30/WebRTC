@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import startCamera from "../assets/startCamera.png";
 import stopCamera from "../assets/stopCamera.png";
+import offCamera from "../assets/offCameraIcon.png";
 
 interface LocationState {
   state: {
@@ -25,6 +26,7 @@ const Receiver = () => {
   const [remoteCamera, setRemoteCamera] = useState(true);
   const [stream, setStream] = useState<unknown>(null);
   const [yourCamera, setYourCamera] = useState(true);
+  const [pc, setPc] = useState<RTCPeerConnection | null>(null);
 
   useEffect(() => {
     if (state) {
@@ -52,7 +54,7 @@ const Receiver = () => {
       let pc = pcRef.current;
 
       if (message.type === "createOffer") {
-        console.log("Creating Answer");
+  
         setRemoteName(message.name);
         setRemoteUserJoined(true);
         if (pc) {
@@ -60,6 +62,7 @@ const Receiver = () => {
         }
         pc = new RTCPeerConnection();
         pcRef.current = pc;
+        setPc(pc);
 
         pc.onicecandidate = (event) => {
           if (event.candidate) {
@@ -76,9 +79,9 @@ const Receiver = () => {
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = event.streams[0];
             setRemoteCamera(true);
-            console.log("Inside Remote.currect");
+    
           }
-          console.log("Addoing Remote Track");
+   
         };
 
         pc.onnegotiationneeded = async () => {
@@ -109,10 +112,10 @@ const Receiver = () => {
         socket.send(
           JSON.stringify({ type: "createAnswer", sdp: pc.localDescription })
         );
-        console.log("Answer sent");
+ 
       } else if (message.type === "iceCandidate" && pc) {
         await pc.addIceCandidate(new RTCIceCandidate(message.candidate));
-        console.log("Added IceCandidate");
+
       } else if (message.type === "offer") {
         await pc?.setRemoteDescription(message.sdp);
         const answer = await pc?.createAnswer();
@@ -125,9 +128,7 @@ const Receiver = () => {
       } else if (message.type === "cameraClosed") {
         remoteVideoRef.current = null;
         setRemoteCamera(false);
-        console.log("Recvd Stop Camera Call");
       } else if (message.type === "startCamera") {
-        console.log("Recv Start Camera");
         setRemoteCamera(true);
       }
     };
@@ -143,9 +144,9 @@ const Receiver = () => {
   }, [meetId, state.userName]);
 
   const StopCameraHandler = () => {
-    if (stream && pcRef.current) {
+    if (stream && pc) {
       setYourCamera(false);
-      const pc = pcRef.current;
+
       socketRef.current?.send(JSON.stringify({ type: "cameraClosed" }));
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-expect-error
@@ -166,7 +167,7 @@ const Receiver = () => {
   };
 
   const StartCameraHandler = async () => {
-    if (pcRef.current) {
+    if (pc) {
       setYourCamera(true);
       socketRef.current?.send(JSON.stringify({ type: "startCamera" }));
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -178,10 +179,20 @@ const Receiver = () => {
         localVideoRef.current.srcObject = stream;
       }
 
-      stream
-        .getTracks()
-        .forEach((track) => pcRef.current?.addTrack(track, stream));
+      stream.getTracks().forEach((track) => {
+
+        pc.addTrack(track, stream);
+
+      });
       setStream(stream);
+   
+      pc.onnegotiationneeded = async () => {
+        const offer = await pc?.createOffer();
+        await pc?.setLocalDescription(offer);
+        socketRef.current?.send(
+          JSON.stringify({ type: "offer", sdp: pc?.localDescription })
+        );
+      };
     }
   };
 
@@ -212,10 +223,14 @@ const Receiver = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-700 space-y-4">
-      <div className="flex space-x-4">
+      <div className="flex flex-col items-center text-center">
         {!remoteUserJoined && !message && (
-          <label className="text-white">Waiting for owner to let you In</label>
+          <label className="text-white text-xl font-bold text-center">
+            Waiting for owner to let you In
+          </label>
         )}
+      </div>
+      <div className="flex space-x-4 justify-center align-middle text-center items-center">
         {yourCamera && (
           <div className="flex flex-col items-center">
             <video
@@ -228,6 +243,12 @@ const Receiver = () => {
               autoPlay
             ></video>
             {remoteUserJoined && <label className="text-white mb-2">You</label>}
+          </div>
+        )}
+        {!yourCamera && (
+          <div className="flex flex-col bg-black px-16 py-8 h-1/2 text-center gap-2">
+            <img src={offCamera} alt="Camera is Off" />
+            {remoteUserJoined && <label className="text-white">You</label>}
           </div>
         )}
         {remoteCamera && (
@@ -247,9 +268,17 @@ const Receiver = () => {
             </label>
           </div>
         )}
+        {!remoteCamera && (
+          <div className="flex flex-col bg-black px-16 py-8 text-center gap-2 h-1/2">
+            <img src={offCamera} alt="Camera is Off" />
+            {remoteUserJoined && (
+              <label className="text-white">{remoteName}</label>
+            )}
+          </div>
+        )}
       </div>
       <div className="flex flex-col md:flex-row md:gap-8 items-center">
-        <div className="flex flex-row gap-8">
+        <div className="flex items-center align-middle justify-center">
           {yourCamera && (
             <div onClick={StopCameraHandler} className="cursor-pointer">
               <img

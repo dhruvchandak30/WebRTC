@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import startCamera from "../assets/startCamera.png";
 import stopCamera from "../assets/stopCamera.png";
+import offCamera from "../assets/offCameraIcon.png";
 interface LocationState {
   state: {
     Id: string;
@@ -33,9 +34,7 @@ const Sender = () => {
       setName(state.userName);
     }
   }, [state]);
-  useEffect(() => {
-    console.log("Remote Name", remoteName);
-  }, [remoteName]);
+
 
   useEffect(() => {
     if (!meetId || !name) return;
@@ -124,7 +123,10 @@ const Sender = () => {
     pc.ontrack = (event) => {
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = event.streams[0];
+    
       }
+
+
     };
 
     pc.onconnectionstatechange = () => {
@@ -204,12 +206,12 @@ const Sender = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-700 space-y-4 p-4">
       {!remoteName && (
-        <label className="text-2xl text-white text-center">
+        <label className="text-2xl text-white text-center font-bold">
           Waiting for Users to Join . . .
         </label>
       )}
       {remoteName && !remoteUserJoined && (
-        <label className="text-2xl text-white text-center">
+        <label className="text-2xl text-white text-center font-bold">
           {remoteName} has Joined
         </label>
       )}
@@ -218,31 +220,45 @@ const Sender = () => {
           onClick={startSendingVideoHandler}
           className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
         >
-          Start Call
+          Accept ?
         </button>
       )}
 
-      <div className="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
+      <div className="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0 align-middle items-center">
         {yourCamera && (
           <div className="flex flex-col items-center">
             <video
               ref={localVideoRef}
-              style={{ transform: "scaleX(-1)", width: "30rem" }}
-              className="w-full h-auto md:w-96 md:h-72"
+              style={{ transform: "scaleX(-1)", width: "40rem" }}
+              className=""
               autoPlay
             ></video>
             {remoteUserJoined && <label className="text-white">You</label>}
           </div>
         )}
-        {remoteCamera && (
+        {!yourCamera && (
+          <div className="flex flex-col bg-black px-16 py-8 text-center gap-2 h-1/2">
+            <img src={offCamera} alt="Camera is Off" />
+            {remoteUserJoined && <label className="text-white">You</label>}
+          </div>
+        )}
+        {remoteCamera && remoteUserJoined && (
           <div className="flex flex-col items-center">
             <video
               ref={remoteVideoRef}
-              style={{ transform: "scaleX(-1)", width: "30rem" }}
-              className=" md:w-96 md:h-72"
+              style={{ transform: "scaleX(-1)", width: "40rem" }}
+              className=""
               autoPlay
             ></video>
             <label className="text-white">{remoteName ? remoteName : ""}</label>
+          </div>
+        )}
+        {!remoteCamera && (
+          <div className="flex flex-col bg-black px-16 py-8 text-center gap-2">
+            <img src={offCamera} alt="Camera is Off" />
+            {remoteUserJoined && (
+              <label className="text-white">{remoteName}</label>
+            )}
           </div>
         )}
       </div>
@@ -280,6 +296,7 @@ const Sender = () => {
         </div>
       </div>
       {message && <label className="text-red-700 text-xl">{message}</label>}
+  
       <div className="text-xl text-white mt-4 md:mt-0">Meet Id: {meetId}</div>
     </div>
   );
