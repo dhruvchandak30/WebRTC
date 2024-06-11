@@ -264,7 +264,7 @@ const Sender = () => {
       </div>
       <div className="flex flex-col md:flex-row md:gap-8 items-center">
         <div className="flex flex-row gap-8">
-          {yourCamera && (
+          {yourCamera&& remoteUserJoined && (
             <div onClick={StopCameraHandler} className="cursor-pointer">
               <img
                 src={startCamera}

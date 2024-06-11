@@ -67,8 +67,8 @@ const Home: React.FC = () => {
 
   if (currentView === "home") {
     return (
-      <div className="flex flex-row  justify-around items-center min-h-screen bg-gray-700 space-y-6">
-        <div className="flex flex-col gap-8">
+      <div className="flex flex-col md:flex-row justify-around items-center min-h-screen bg-gray-700 space-y-6 md:space-y-0 md:space-x-6 p-4 md:p-0">
+        <div className="flex flex-col gap-8 w-full md:w-1/3">
           <button
             onClick={handleCreateMeet}
             className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
@@ -107,11 +107,11 @@ const Home: React.FC = () => {
             </button>
           </form>
         </div>
-        <div className="flex flex-col gap-6 items-center">
+        <div className="flex flex-col gap-6 items-center w-full md:w-1/3">
           <video
             ref={localVideoRef}
             style={{ transform: "scaleX(-1)" }}
-            className="w-160 h-160 bg-black"
+            className="w-full h-64 md:h-96 bg-black"
             autoPlay
           ></video>
           <label className="text-white text-xl mb-2">Camera Preview</label>
@@ -122,7 +122,7 @@ const Home: React.FC = () => {
 
   if (currentView === "name") {
     return (
-      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100 space-y-6">
+      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100 space-y-6 p-4 md:p-0">
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h1 className="text-2xl font-semibold text-gray-700">
             Meet ID: {meetId}
@@ -130,7 +130,7 @@ const Home: React.FC = () => {
         </div>
         <form
           onSubmit={senderHandler}
-          className="bg-white p-6 rounded-lg shadow-md space-y-4"
+          className="bg-white p-6 rounded-lg shadow-md space-y-4 w-full max-w-md"
         >
           <label className="block mb-2 text-lg font-semibold text-gray-700">
             Name:
