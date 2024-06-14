@@ -137,7 +137,8 @@ const Sender = () => {
     };
 
     // Codec handling
-    pc.addEventListener("icegatheringstatechange", () => {
+
+    pc.onicegatheringstatechange = () => {
       if (pc.iceGatheringState === "complete") {
         const senders = pc.getSenders();
 
@@ -148,8 +149,10 @@ const Sender = () => {
             return;
           }
         });
+      } else {
+        console.log("Pc ice gathering State In complete");
       }
-    });
+    };
 
     // Initial codec setup
     if (pc && codecList) {

@@ -66,16 +66,25 @@ const Receiver = () => {
         pcRef.current = pc;
         setPc(pc);
 
-        pc.addEventListener("icegatheringstatechange", () => {
+        // Codec handling
+
+        pc.onicegatheringstatechange = () => {
           if (pc?.iceGatheringState === "complete") {
             const senders = pc.getSenders();
+
             senders.forEach((sender) => {
               if (sender.track?.kind === "video") {
                 setCodecList(sender.getParameters().codecs);
+                console.warn("Updating codecList");
+                return;
+              } else {
+                console.warn("Cannot Update ice gathering state change");
               }
             });
+          } else {
+            console.log("Pc ice gathering State In complete");
           }
-        });
+        };
 
         pc.onicecandidate = (event) => {
           if (event.candidate) {
@@ -125,7 +134,7 @@ const Receiver = () => {
         );
 
         if (codecList) {
-          changeVideoCodec("video/H264"); // Change to your preferred codec MIME type
+          changeVideoCodec("video/H264");
         }
       } else if (message.type === "iceCandidate" && pc) {
         await pc.addIceCandidate(new RTCIceCandidate(message.candidate));
