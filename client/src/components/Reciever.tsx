@@ -27,6 +27,9 @@ const Receiver = () => {
   const [stream, setStream] = useState<unknown>(null);
   const [yourCamera, setYourCamera] = useState(true);
   const [pc, setPc] = useState<RTCPeerConnection | null>(null);
+  const [codecList, setCodecList] = useState<RTCRtpCodecCapability[] | null>(
+    null
+  );
 
   useEffect(() => {
     if (state) {
@@ -54,7 +57,6 @@ const Receiver = () => {
       let pc = pcRef.current;
 
       if (message.type === "createOffer") {
-  
         setRemoteName(message.name);
         setRemoteUserJoined(true);
         if (pc) {
@@ -63,6 +65,17 @@ const Receiver = () => {
         pc = new RTCPeerConnection();
         pcRef.current = pc;
         setPc(pc);
+
+        pc.addEventListener("icegatheringstatechange", () => {
+          if (pc?.iceGatheringState === "complete") {
+            const senders = pc.getSenders();
+            senders.forEach((sender) => {
+              if (sender.track?.kind === "video") {
+                setCodecList(sender.getParameters().codecs);
+              }
+            });
+          }
+        });
 
         pc.onicecandidate = (event) => {
           if (event.candidate) {
@@ -79,9 +92,7 @@ const Receiver = () => {
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = event.streams[0];
             setRemoteCamera(true);
-    
           }
-   
         };
 
         pc.onnegotiationneeded = async () => {
@@ -112,10 +123,12 @@ const Receiver = () => {
         socket.send(
           JSON.stringify({ type: "createAnswer", sdp: pc.localDescription })
         );
- 
+
+        if (codecList) {
+          changeVideoCodec("video/H264"); // Change to your preferred codec MIME type
+        }
       } else if (message.type === "iceCandidate" && pc) {
         await pc.addIceCandidate(new RTCIceCandidate(message.candidate));
-
       } else if (message.type === "offer") {
         await pc?.setRemoteDescription(message.sdp);
         const answer = await pc?.createAnswer();
@@ -142,6 +155,36 @@ const Receiver = () => {
       }
     };
   }, [meetId, state.userName]);
+
+  const changeVideoCodec = (mimeType: string) => {
+    const transceivers = pc?.getTransceivers();
+    transceivers?.forEach((transceiver) => {
+      const kind = transceiver.sender.track?.kind;
+      if (kind === "video") {
+        const sendCodecs = RTCRtpSender.getCapabilities(kind)?.codecs;
+        const recvCodecs = RTCRtpReceiver.getCapabilities(kind)?.codecs;
+
+        if (sendCodecs && recvCodecs) {
+          transceiver.setCodecPreferences(
+            preferCodec([...sendCodecs, ...recvCodecs], mimeType)
+          );
+          console.warn("Updating codecList");
+        } else {
+          console.error("sendCodecs or recvCodecs is undefined");
+        }
+      }
+    });
+  };
+
+  const preferCodec = (
+    codecs: RTCRtpCodecCapability[],
+    mimeType: string
+  ): RTCRtpCodecCapability[] => {
+    const sortedCodecs = codecs.filter((codec) => codec.mimeType === mimeType);
+    const otherCodecs = codecs.filter((codec) => codec.mimeType !== mimeType);
+    console.warn("Updating preferCodec");
+    return [...sortedCodecs, ...otherCodecs];
+  };
 
   const StopCameraHandler = () => {
     if (stream && pc) {
@@ -180,12 +223,10 @@ const Receiver = () => {
       }
 
       stream.getTracks().forEach((track) => {
-
         pc.addTrack(track, stream);
-
       });
       setStream(stream);
-   
+
       pc.onnegotiationneeded = async () => {
         const offer = await pc?.createOffer();
         await pc?.setLocalDescription(offer);
@@ -193,6 +234,10 @@ const Receiver = () => {
           JSON.stringify({ type: "offer", sdp: pc?.localDescription })
         );
       };
+
+      if (codecList) {
+        changeVideoCodec("video/H264"); // Change to your preferred codec MIME type
+      }
     }
   };
 

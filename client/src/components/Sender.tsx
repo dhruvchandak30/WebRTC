@@ -27,6 +27,7 @@ const Sender = () => {
   const [yourCamera, setYourCamera] = useState(true);
   const [remoteCamera, setRemoteCamera] = useState(true);
   const [stream, setStream] = useState<unknown>(null);
+  let codecList: RTCRtpCodecCapability[] | null = null;
 
   useEffect(() => {
     if (state) {
@@ -34,7 +35,6 @@ const Sender = () => {
       setName(state.userName);
     }
   }, [state]);
-
 
   useEffect(() => {
     if (!meetId || !name) return;
@@ -123,10 +123,7 @@ const Sender = () => {
     pc.ontrack = (event) => {
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = event.streams[0];
-    
       }
-
-
     };
 
     pc.onconnectionstatechange = () => {
@@ -137,6 +134,74 @@ const Sender = () => {
         // setRemoteUserJoined(false);
       }
     };
+
+    // Codec handling
+    pc.addEventListener("icegatheringstatechange", () => {
+      if (pc.iceGatheringState === "complete") {
+        const senders = pc.getSenders();
+
+        senders.forEach((sender) => {
+          if (sender.track?.kind === "video") {
+            codecList = sender.getParameters().codecs;
+            console.warn("Updating codecList");
+            return;
+          }
+        });
+      }
+    });
+
+    // Initial codec setup
+    if (pc && codecList) {
+      changeVideoCodec(pc, "video/H264");
+    }
+  };
+
+  const changeVideoCodec = (
+    peerConnection: RTCPeerConnection,
+    mimeType: string
+  ): void => {
+    const transceivers = peerConnection.getTransceivers();
+
+    transceivers.forEach((transceiver) => {
+      const kind = transceiver.sender.track?.kind;
+
+      if (kind === "video" && codecList) {
+        // Use the stored codecList to find and prefer the specified mimeType codec
+        const preferredCodecs = preferCodec(codecList, mimeType);
+        transceiver.setCodecPreferences(preferredCodecs);
+        console.warn("Updating codecList");
+      }
+    });
+
+    peerConnection.onnegotiationneeded = async () => {
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      socket?.send(
+        JSON.stringify({
+          type: "createOffer",
+          sdp: peerConnection.localDescription,
+        })
+      );
+    };
+  };
+
+  const preferCodec = (
+    codecs: RTCRtpCodecCapability[],
+    mimeType: string
+  ): RTCRtpCodecCapability[] => {
+    const sortedCodecs: RTCRtpCodecCapability[] = [];
+    const otherCodecs: RTCRtpCodecCapability[] = [];
+
+    codecs.forEach((codec) => {
+      if (codec.mimeType === mimeType) {
+        sortedCodecs.push(codec);
+      } else {
+        otherCodecs.push(codec);
+      }
+    });
+    console.warn("Updating preferCodec");
+
+    return sortedCodecs.concat(otherCodecs);
   };
 
   const StopCameraHandler = () => {
@@ -264,7 +329,7 @@ const Sender = () => {
       </div>
       <div className="flex flex-col md:flex-row md:gap-8 items-center">
         <div className="flex flex-row gap-8">
-          {yourCamera&& remoteUserJoined && (
+          {yourCamera && remoteUserJoined && (
             <div onClick={StopCameraHandler} className="cursor-pointer">
               <img
                 src={startCamera}
@@ -296,7 +361,7 @@ const Sender = () => {
         </div>
       </div>
       {message && <label className="text-red-700 text-xl">{message}</label>}
-  
+
       <div className="text-xl text-white mt-4 md:mt-0">Meet Id: {meetId}</div>
     </div>
   );
