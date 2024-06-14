@@ -132,6 +132,7 @@ const Sender = () => {
         pc.connectionState === "failed"
       ) {
         // setRemoteUserJoined(false);
+        console.log("Connection Disconnected");
       }
     };
 
