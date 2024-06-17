@@ -166,23 +166,24 @@ const Sender = () => {
     // Initial codec setup
   };
 
-  const changeVideoCodec = (
+  const changeVideoCodec = async (
     peerConnection: RTCPeerConnection,
     mimeType: string
-  ): void => {
+  ) => {
     const transceivers = peerConnection.getTransceivers();
     console.log(mimeType);
-    transceivers.forEach((transceiver) => {
+    transceivers.forEach(async (transceiver) => {
       const kind = transceiver.sender.track?.kind;
 
       if (kind === "video" && codecList) {
         console.log("Trans Created");
         const h264 =
           RTCRtpSender.getCapabilities("video")?.codecs.filter((codec) => {
-            if (codec.mimeType.includes("h264")) {
+            if (codec.mimeType.includes("H264")) {
               return true;
             }
           }) ?? [];
+        console.log(h264);
         transceiver.setCodecPreferences(h264);
         // Use the stored codecList to find and prefer the specified mimeType codec
         // const preferredCodecs = preferCodec(codecList, mimeType);
@@ -190,6 +191,14 @@ const Sender = () => {
         console.warn("Updating codecList");
       }
     });
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    socket?.send(
+      JSON.stringify({
+        type: "createOffer",
+        sdp: peerConnection.localDescription,
+      })
+    );
 
     peerConnection.onnegotiationneeded = async () => {
       const offer = await peerConnection.createOffer();
