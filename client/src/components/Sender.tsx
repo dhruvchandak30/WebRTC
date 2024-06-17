@@ -139,12 +139,16 @@ const Sender = () => {
     // Codec handling
 
     pc.onicegatheringstatechange = () => {
+      console.log(pc.iceGatheringState);
+      console.log(pc.getSenders());
       if (pc.iceGatheringState === "complete") {
         const senders = pc.getSenders();
 
         senders.forEach((sender) => {
           if (sender.track?.kind === "video") {
+            console.log(sender.getParameters());
             codecList = sender.getParameters().codecs;
+            console.log(codecList);
             console.warn("Updating codecList");
             return;
           }
@@ -156,6 +160,7 @@ const Sender = () => {
 
     // Initial codec setup
     if (pc && codecList) {
+      console.log("Called changeVideoCodec");
       changeVideoCodec(pc, "video/H264");
     }
   };
