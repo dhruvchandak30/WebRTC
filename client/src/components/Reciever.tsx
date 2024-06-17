@@ -163,6 +163,7 @@ const Receiver = () => {
         socketRef.current.close();
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meetId, state.userName]);
 
   const changeVideoCodec = (mimeType: string) => {

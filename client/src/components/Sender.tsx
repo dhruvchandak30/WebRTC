@@ -203,24 +203,24 @@ const Sender = () => {
     };
   };
 
-  const preferCodec = (
-    codecs: RTCRtpCodecCapability[],
-    mimeType: string
-  ): RTCRtpCodecCapability[] => {
-    const sortedCodecs: RTCRtpCodecCapability[] = [];
-    const otherCodecs: RTCRtpCodecCapability[] = [];
+  // const preferCodec = (
+  //   codecs: RTCRtpCodecCapability[],
+  //   mimeType: string
+  // ): RTCRtpCodecCapability[] => {
+  //   const sortedCodecs: RTCRtpCodecCapability[] = [];
+  //   const otherCodecs: RTCRtpCodecCapability[] = [];
 
-    codecs.forEach((codec) => {
-      if (codec.mimeType === mimeType) {
-        sortedCodecs.push(codec);
-      } else {
-        otherCodecs.push(codec);
-      }
-    });
-    console.warn("Updating preferCodec");
+  //   codecs.forEach((codec) => {
+  //     if (codec.mimeType === mimeType) {
+  //       sortedCodecs.push(codec);
+  //     } else {
+  //       otherCodecs.push(codec);
+  //     }
+  //   });
+  //   console.warn("Updating preferCodec");
 
-    return sortedCodecs.concat(otherCodecs);
-  };
+  //   return sortedCodecs.concat(otherCodecs);
+  // };
 
   const StopCameraHandler = () => {
     if (stream && pc) {
