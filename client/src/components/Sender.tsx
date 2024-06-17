@@ -92,6 +92,8 @@ const Sender = () => {
     const pc = new RTCPeerConnection();
     setPc(pc);
 
+    // Write Codec From this point.
+
     pc.onnegotiationneeded = async () => {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -150,7 +152,10 @@ const Sender = () => {
             codecList = sender.getParameters().codecs;
             console.log(codecList);
             console.warn("Updating codecList");
-            return;
+            if (pc && codecList) {
+              console.log("Called changeVideoCodec");
+              changeVideoCodec(pc, "video/H264");
+            }
           }
         });
       } else {
@@ -159,10 +164,6 @@ const Sender = () => {
     };
 
     // Initial codec setup
-    if (pc && codecList) {
-      console.log("Called changeVideoCodec");
-      changeVideoCodec(pc, "video/H264");
-    }
   };
 
   const changeVideoCodec = (
@@ -170,14 +171,22 @@ const Sender = () => {
     mimeType: string
   ): void => {
     const transceivers = peerConnection.getTransceivers();
-
+    console.log(mimeType);
     transceivers.forEach((transceiver) => {
       const kind = transceiver.sender.track?.kind;
 
       if (kind === "video" && codecList) {
+        console.log("Trans Created");
+        const h264 =
+          RTCRtpSender.getCapabilities("video")?.codecs.filter((codec) => {
+            if (codec.mimeType.includes("h264")) {
+              return true;
+            }
+          }) ?? [];
+        transceiver.setCodecPreferences(h264);
         // Use the stored codecList to find and prefer the specified mimeType codec
-        const preferredCodecs = preferCodec(codecList, mimeType);
-        transceiver.setCodecPreferences(preferredCodecs);
+        // const preferredCodecs = preferCodec(codecList, mimeType);
+        // transceiver.setCodecPreferences(preferredCodecs);
         console.warn("Updating codecList");
       }
     });
