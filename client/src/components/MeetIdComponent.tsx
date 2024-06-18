@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import "react-tooltip/dist/react-tooltip.css";
+
 
 interface Props {
   meetId: string;
