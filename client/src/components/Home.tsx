@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import MeetIdComponent from "./MeetIdComponent";
 
 const Home: React.FC = () => {
   const [currentView, setCurrentView] = useState<"home" | "meet" | "name">(
@@ -123,11 +124,7 @@ const Home: React.FC = () => {
   if (currentView === "name") {
     return (
       <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100 space-y-6 p-4 md:p-0">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h1 className="text-2xl font-semibold text-gray-700">
-            Meet ID: {meetId}
-          </h1>
-        </div>
+        <MeetIdComponent meetId={meetId} />
         <form
           onSubmit={senderHandler}
           className="bg-white p-6 rounded-lg shadow-md space-y-4 w-full max-w-md"

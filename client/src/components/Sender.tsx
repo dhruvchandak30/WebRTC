@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import startCamera from "../assets/startCamera.png";
 import stopCamera from "../assets/stopCamera.png";
 import offCamera from "../assets/offCameraIcon.png";
+import MeetIdComponent from "./MeetIdComponent";
+
 interface LocationState {
   state: {
     Id: string;
@@ -134,61 +136,42 @@ const Sender = () => {
         pc.connectionState === "failed"
       ) {
         // setRemoteUserJoined(false);
-        console.log("Connection Disconnected");
       }
     };
 
     // Codec handling
 
     pc.onicegatheringstatechange = () => {
-      console.log(pc.iceGatheringState);
-      console.log(pc.getSenders());
       if (pc.iceGatheringState === "complete") {
         const senders = pc.getSenders();
 
         senders.forEach((sender) => {
           if (sender.track?.kind === "video") {
-            console.log(sender.getParameters());
             codecList = sender.getParameters().codecs;
-            console.log(codecList);
-            console.warn("Updating codecList");
             if (pc && codecList) {
-              console.log("Called changeVideoCodec");
-              changeVideoCodec(pc, "video/H264");
+              changeVideoCodec(pc);
             }
           }
         });
-      } else {
-        console.log("Pc ice gathering State In complete");
       }
     };
-
-    // Initial codec setup
   };
 
-  const changeVideoCodec = async (
-    peerConnection: RTCPeerConnection,
-    mimeType: string
-  ) => {
+  const changeVideoCodec = async (peerConnection: RTCPeerConnection) => {
     const transceivers = peerConnection.getTransceivers();
-    console.log(mimeType);
+
     transceivers.forEach(async (transceiver) => {
       const kind = transceiver.sender.track?.kind;
 
       if (kind === "video" && codecList) {
-        console.log("Trans Created");
         const h264 =
           RTCRtpSender.getCapabilities("video")?.codecs.filter((codec) => {
             if (codec.mimeType.includes("H264")) {
               return true;
             }
           }) ?? [];
-        console.log(h264);
+
         transceiver.setCodecPreferences(h264);
-        // Use the stored codecList to find and prefer the specified mimeType codec
-        // const preferredCodecs = preferCodec(codecList, mimeType);
-        // transceiver.setCodecPreferences(preferredCodecs);
-        console.warn("Updating codecList");
       }
     });
     const offer = await peerConnection.createOffer();
@@ -211,25 +194,6 @@ const Sender = () => {
       );
     };
   };
-
-  // const preferCodec = (
-  //   codecs: RTCRtpCodecCapability[],
-  //   mimeType: string
-  // ): RTCRtpCodecCapability[] => {
-  //   const sortedCodecs: RTCRtpCodecCapability[] = [];
-  //   const otherCodecs: RTCRtpCodecCapability[] = [];
-
-  //   codecs.forEach((codec) => {
-  //     if (codec.mimeType === mimeType) {
-  //       sortedCodecs.push(codec);
-  //     } else {
-  //       otherCodecs.push(codec);
-  //     }
-  //   });
-  //   console.warn("Updating preferCodec");
-
-  //   return sortedCodecs.concat(otherCodecs);
-  // };
 
   const StopCameraHandler = () => {
     if (stream && pc) {
@@ -325,13 +289,21 @@ const Sender = () => {
               className=""
               autoPlay
             ></video>
-            {remoteUserJoined && <label className="text-white">You</label>}
+            {remoteUserJoined && (
+              <label className="text-white text-xl font-bold">You</label>
+            )}
           </div>
         )}
         {!yourCamera && (
-          <div className="flex flex-col bg-black px-16 py-8 text-center gap-2 h-1/2">
-            <img src={offCamera} alt="Camera is Off" />
-            {remoteUserJoined && <label className="text-white">You</label>}
+          <div className="flex flex-col bg-black rounded-3xl p-16 text-center gap-2 h-1/2">
+            <img
+              src={offCamera}
+              className="rounded-full m-2"
+              alt="Camera is Off"
+            />
+            {remoteUserJoined && (
+              <label className="text-white text-xl font-bold">You</label>
+            )}
           </div>
         )}
         {remoteCamera && remoteUserJoined && (
@@ -342,14 +314,22 @@ const Sender = () => {
               className=""
               autoPlay
             ></video>
-            <label className="text-white">{remoteName ? remoteName : ""}</label>
+            <label className="text-white text-xl font-bold">
+              {remoteName ? remoteName : ""}
+            </label>
           </div>
         )}
         {!remoteCamera && (
-          <div className="flex flex-col bg-black px-16 py-8 text-center gap-2">
-            <img src={offCamera} alt="Camera is Off" />
+          <div className="flex flex-col bg-black rounded-3xl p-16 text-center gap-2">
+            <img
+              src={offCamera}
+              alt="Camera is Off"
+              className="rounded-full m-2"
+            />
             {remoteUserJoined && (
-              <label className="text-white">{remoteName}</label>
+              <label className="text-white text-xl font-bold">
+                {remoteName}
+              </label>
             )}
           </div>
         )}
@@ -389,7 +369,7 @@ const Sender = () => {
       </div>
       {message && <label className="text-red-700 text-xl">{message}</label>}
 
-      <div className="text-xl text-white mt-4 md:mt-0">Meet Id: {meetId}</div>
+      <MeetIdComponent meetId={meetId} />
     </div>
   );
 };

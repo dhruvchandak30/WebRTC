@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import startCamera from "../assets/startCamera.png";
 import stopCamera from "../assets/stopCamera.png";
 import offCamera from "../assets/offCameraIcon.png";
+import MeetIdComponent from "./MeetIdComponent";
 
 interface LocationState {
   state: {
@@ -17,7 +18,7 @@ const Receiver = () => {
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
-  const [meetId, setMeetId] = useState<string | null>(null);
+  const [meetId, setMeetId] = useState<string>("");
   const [remoteName, setRemoteName] = useState<string>("");
   const [remoteUserJoined, setRemoteUserJoined] = useState<boolean>(false);
   const location = useLocation();
@@ -75,14 +76,10 @@ const Receiver = () => {
             senders.forEach((sender) => {
               if (sender.track?.kind === "video") {
                 setCodecList(sender.getParameters().codecs);
-                console.warn("Updating codecList");
+
                 return;
-              } else {
-                console.warn("Cannot Update ice gathering state change");
               }
             });
-          } else {
-            console.log("Pc ice gathering State In complete");
           }
         };
 
@@ -163,7 +160,7 @@ const Receiver = () => {
         socketRef.current.close();
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meetId, state.userName]);
 
   const changeVideoCodec = (mimeType: string) => {
@@ -178,10 +175,8 @@ const Receiver = () => {
           transceiver.setCodecPreferences(
             preferCodec([...sendCodecs, ...recvCodecs], mimeType)
           );
-          console.warn("Updating codecList");
-        } else {
-          console.error("sendCodecs or recvCodecs is undefined");
-        }
+
+        } 
       }
     });
   };
@@ -192,7 +187,6 @@ const Receiver = () => {
   ): RTCRtpCodecCapability[] => {
     const sortedCodecs = codecs.filter((codec) => codec.mimeType === mimeType);
     const otherCodecs = codecs.filter((codec) => codec.mimeType !== mimeType);
-    console.warn("Updating preferCodec");
     return [...sortedCodecs, ...otherCodecs];
   };
 
@@ -297,13 +291,21 @@ const Receiver = () => {
               ref={localVideoRef}
               autoPlay
             ></video>
-            {remoteUserJoined && <label className="text-white mb-2">You</label>}
+            {remoteUserJoined && (
+              <label className="text-white mb-2  text-xl font-bold">You</label>
+            )}
           </div>
         )}
         {!yourCamera && (
-          <div className="flex flex-col bg-black px-16 py-8 h-1/2 text-center gap-2">
-            <img src={offCamera} alt="Camera is Off" />
-            {remoteUserJoined && <label className="text-white">You</label>}
+          <div className="flex flex-col bg-black rounded-3xl p-16 h-1/2 text-center gap-2">
+            <img
+              src={offCamera}
+              alt="Camera is Off"
+              className="rounded-full m-2"
+            />
+            {remoteUserJoined && (
+              <label className="text-white text-xl font-bold">You</label>
+            )}
           </div>
         )}
         {remoteCamera && (
@@ -318,16 +320,22 @@ const Receiver = () => {
               autoPlay
             ></video>
 
-            <label className="text-white mb-2">
+            <label className="text-white mb-2  text-xl font-bold">
               {remoteName ? remoteName : ""}
             </label>
           </div>
         )}
         {!remoteCamera && (
-          <div className="flex flex-col bg-black px-16 py-8 text-center gap-2 h-1/2">
-            <img src={offCamera} alt="Camera is Off" />
+          <div className="flex flex-col bg-black rounded-3xl p-16 text-center gap-2 h-1/2">
+            <img
+              src={offCamera}
+              alt="Camera is Off"
+              className="rounded-full m-2"
+            />
             {remoteUserJoined && (
-              <label className="text-white">{remoteName}</label>
+              <label className="text-white text-xl font-bold">
+                {remoteName}
+              </label>
             )}
           </div>
         )}
@@ -374,7 +382,7 @@ const Receiver = () => {
           </Link>
         </div>
       )}
-      <div className="text-xl text-white mt-4 md:mt-0">Meet Id: {meetId}</div>
+      <MeetIdComponent meetId={meetId} />
     </div>
   );
 };
