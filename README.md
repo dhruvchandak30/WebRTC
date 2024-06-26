@@ -1,0 +1,1 @@
+Developed a Real Time Video Communication Website using WebRTC. A user can create room an invite friends to have a video call with them Tech Stack: React, WebRTC, WebSockets and TypeScript Features: Real Time communication, create rooms, Turn On/Off Camera, ScreenShare
