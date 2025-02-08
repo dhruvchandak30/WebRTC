@@ -1,4 +1,3 @@
-import React from 'react';
 import Navbar from './Navbar';
 import hero from '../assets/hero.webp';
 import { Link } from 'react-router-dom';
