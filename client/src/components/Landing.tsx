@@ -14,7 +14,7 @@ const Landing = () => {
                     transition={{ duration: 0.8 }}
                     className="lg:w-1/2 text-center lg:text-left space-y-6"
                 >
-                    <h1 className="text-5xl font-semibold leading-tight bg-gradient-to-r text-black to-purple-600 text-transparent bg-clip-text">
+                    <h1 className="text-5xl font-semibold leading-tight bg-gradient-to-r text-black to-purple-600 bg-clip-text">
                         The Future of Video Communication
                     </h1>
                     <p className="text-lg text-gray-700 leading-relaxed max-w-lg">
